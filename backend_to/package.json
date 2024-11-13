@@ -1,0 +1,36 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "license": "MIT",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "db:seed": "ts-node prisma/seed.ts",
+    "db:migrate": "prisma migrate dev --name init",
+    "db:clear": "rm -f prisma/dev.db",
+    "db:create": "yarn db:clear && yarn db:migrate && yarn db:seed"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.19.1",
+    "cors": "^2.8.5",
+    "googleapis": "^144.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "prisma": "^5.19.1",
+    "socket.io": "^4.7.5",
+    "socketio-jwt": "^4.6.2",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^3.6.0",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^22.5.4",
+    "@types/socket.io": "^3.0.2",
+    "eslint": "^9.10.0",
+    "eslint-plugin-format": "^0.1.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2"
+  }
+}
