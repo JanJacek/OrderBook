@@ -1,77 +1,96 @@
-import type { Socket } from 'socket.io'
+import { Server, Socket } from 'socket.io';
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-// ORDER SECTION
-export function ioAddOrder(socket: Socket) {
-  socket.on('add order', async (data, callback) => {
-    try {
-
-      const { id_restaurant, products, date } = data as { id_restaurant: number, products: { id: number, quantity: number }[], date: string };
-      const id_set = Math.floor(Math.random() * 1000000);
-
-      // Sprawdź istnienie id_restaurant
-      const restaurantExists = await prisma.restaurants.findUnique({
-        where: { id: id_restaurant }
-      });
-
-      if (!restaurantExists) {
-        callback(false, 'Restaurant does not exist');
-        return;
-      }
-
-
-      // sprawdź czy produkty istnieją jeżleli nie to zwróć błąd
-      const productIds = products.map(product => product.id);
-
-      const productsExists = await prisma.products.findMany({
-        where: { id: { in: productIds } }
-      });
-
-      if (productsExists.length !== products.length) {
-        callback(false, 'One or more products do not exist');
-        return;
-      }
-
-// Tworzenie zamówień
-await Promise.all(products.map(async (product) => {
-  await prisma.orders.create({
-    data: {
-      id_set,
-      id_restaurant,
-      id_product: product.id,
-      quantity: product.quantity,
-      date: new Date(date) // Upewnij się, że date jest typu DateTime
-    }
-  });
-}));
-// Wyślij nowe zamówienie do klienta
-callback(true);
-    }
-    catch (error) {
-      console.error('Error adding order:', error)
-      callback(false)
-    }
-  })
+interface Order {
+  trader_id: number,
+  order: { stock_id: number, quantity: number, price:number, type: 'buy' | 'sell' },
+  date: string
 }
 
-// export function ioGetTags(socket: Socket) {
-//   // get tags that are belong to the user
-//   socket.on('get tags', async (data, callback) => {
-//     try {
-//       const { userId } = data
+// ORDER SECTION
+export function ioGetOrderBook(socket: Socket) {
+  socket.on('get order book', async (data, callback) => {
+    try {
+      console.log('Received data:', data); // Log received data for debugging
+      const orders = await prisma.orders.findMany({
+        include: {
+          stocks: true
+        }
+      });
 
-//       const tags = await prisma.tag.findMany({
-//         where: { userId },
-//       })
+      callback(orders);
+    } catch (error) {
+      console.error('Error fetching order book:', error);
+      callback({ error: 'Error fetching order book' });
+    }
+  });
+}
 
-//       callback(tags)
-//     }
-//     catch (error) {
-//       console.error('Error fetching tags:', error)
-//       callback(false)
-//     }
-//   })
-// }
+export function ioAddOrder(io: Server, socket: Socket) {
+  socket.on('add order', async (data, callback) => {
+    try {
+      console.log('data:', data);
+      const { trader_id, order } = data as Order;
 
+      // check if trader exists
+
+      const traderExists = await prisma.traders.findUnique({
+        where: { id: trader_id }
+      });
+
+      if (!traderExists) {
+        console.log('Trader does not exist');
+        callback(false, 'Trader does not exist');
+        return;
+      }
+
+      // check if stock exists
+      console.log('Checking if stock exists...');
+      const stockExists = await prisma.stocks.findUnique({
+        where: { id: order.stock_id }
+      });
+
+      if (!stockExists) {
+        console.log('Stock does not exist');
+        callback(false, 'Stock does not exist');
+        return;
+      }
+
+      // Create new order
+      console.log('Creating new order...');
+      await prisma.orders.create({
+        data: {
+          stock_id: order.stock_id,
+          price: order.price,
+          quantity: order.quantity,
+          order: order.type,
+          trader_id: trader_id,
+          date: new Date()
+        }
+      });
+
+      // send updates to traders
+      console.log('order added');
+      try {
+        console.log('Fetching updated orders list...');
+        const orders = await prisma.orders.findMany({
+          include: {
+            stocks: true
+          }
+        });
+
+        // Notify all connected clients about the updated orders list
+        console.log('wysyłam update orders list');
+        io.emit('orders list updated', orders);
+      } catch (error) {
+        console.error('Error fetching updated orders list:', error);
+      }
+      callback(true);
+    } catch (error) {
+      console.error('Error adding order:', error);
+      callback(false);
+    }
+  });
+}

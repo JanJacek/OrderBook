@@ -1,13 +1,12 @@
 import type { Server } from 'socket.io'
 import { authSocket } from '../utils/jwtVerify'
 import { ioLogin } from './IoLogin'
-import { ioAddOrder } from './IoOrders'
-import { ioTest } from './IoTest'
-import { ioGetProducts } from './IoProducts'
+import { ioAddOrder, ioGetOrderBook } from './IoOrders'
+import { ioGetStocks } from './IoStocks'
 
 export function registerSocketHandlers(io: Server) {
   io.on('connection', (socket) => {
-    console.log(`Klient połączony: ${socket.id}`)
+    console.log(`Client has join the session: ${socket.id}`)
 
     ioLogin(socket)
 
@@ -20,12 +19,12 @@ export function registerSocketHandlers(io: Server) {
       authSocket(socket, next)
     })
 
-    ioTest(socket)
-    ioAddOrder(socket)
-    ioGetProducts(socket)
+    ioGetOrderBook(socket)
+    ioAddOrder(io, socket)
+    ioGetStocks(socket)
 
     socket.on('disconnect', () => {
-      console.log(`Klient rozłączony: ${socket.id}`)
+      console.log(`Client has been disconnected: ${socket.id}`)
     })
   })
 }

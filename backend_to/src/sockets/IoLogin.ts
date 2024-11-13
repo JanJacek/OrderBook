@@ -7,15 +7,15 @@ const prisma = new PrismaClient()
 export function ioLogin(socket: Socket) {
   socket.on('login', async ({ email, password }, callback) => {
     try {
-      const restaurant = await prisma.restaurants.findUnique({
+      const trader = await prisma.traders.findUnique({
         where: { email },
       })
 
-      if (!restaurant || restaurant.password !== password) {
+      if (!trader || trader.password !== password) {
         return callback({ error: 'Invalid email or password' })
       }
 
-      const token = jwt.sign({ id: restaurant.id, restaurant: restaurant.name }, 'your_jwt_secret', { expiresIn: '4h' })
+      const token = jwt.sign({ traderId: trader.id, traderName: trader.name }, 'your_jwt_secret')
       callback({ token })
     }
     catch (error) {
