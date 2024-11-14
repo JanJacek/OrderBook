@@ -1,7 +1,4 @@
 <template>
-  <div style="position: absolute; top: 10vh; left: 10px">
-    <p class="text-h4 q-mr-md text-bold text-white">こんにちは</p>
-  </div>
   <router-view />
   <div
     style="
@@ -24,15 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import { useMainStore } from 'src/stores/mainStore';
-import { onMounted } from 'vue';
 defineOptions({
   name: 'App',
-});
-
-const m_store = useMainStore();
-//  on mounted set user date by useMainStore() action : setUserData()
-onMounted(() => {
-  m_store.setUserData();
 });
 </script>

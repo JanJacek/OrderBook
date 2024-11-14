@@ -2,7 +2,7 @@
   "name": "frontend-ff",
   "version": "0.0.1",
   "description": "project carried out for the course in computer science \"SGH\" ",
-  "productName": "FoodFlow",
+  "productName": "OrderBook",
   "author": "JanJacek <bobkiewicz.jacek@gmail.com>",
   "private": true,
   "scripts": {

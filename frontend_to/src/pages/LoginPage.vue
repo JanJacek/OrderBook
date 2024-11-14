@@ -2,13 +2,15 @@
   <q-page class="row items-center justify-evenly">
     <q-card class="q-pa-xl">
       <p class="text-h5">Login</p>
-      <q-form @submit.prevent="login" class="q-gutter-md q-mt-md"
-        style="width: 400px;"
+      <q-form
+        @submit.prevent="login"
+        class="q-gutter-md q-mt-md"
+        style="width: 400px"
       >
-        <q-input 
-          v-model="email" 
-          type="email" 
-          placeholder="Email" 
+        <q-input
+          v-model="email"
+          type="email"
+          placeholder="Email"
           required
           outlined
           dense
@@ -27,37 +29,38 @@
     </q-card>
   </q-page>
 </template>
-<script setup>
-import { useMainStore } from 'src/stores/mainStore';
+<script setup lang="ts">
 import { ref, inject } from 'vue';
 import { useRouter } from 'vue-router';
+import { Socket } from 'socket.io-client';
 
 const email = ref('');
 const password = ref('');
-const error = ref(null);
-const socket = inject('socket');
+const error = ref('');
+const socket = inject<Socket>('socket');
 const router = useRouter();
-const m_store = useMainStore();
 
 const login = async () => {
+  if (!socket) {
+    console.error('Socket is not defined');
+    return;
+  }
   socket.emit(
     'login',
     { email: email.value, password: password.value },
-    (response) => {
+    (response: { error?: string; token?: string }) => {
       if (response.error) {
         error.value = response.error;
       } else {
-        // in response you receive jwt we have to decode it to check what user was logedin
         const token = response.token;
-        const payload = JSON.parse(atob(token.split('.')[1]));
-
-        m_store.restaurantName = payload.restaurant;
-        console.log(payload.restaurant, m_store.restaurantName);
-        m_store.restaurantId = payload.id;
-
-        localStorage.setItem('token', response.token);
-        m_store.token = response.token;
-        router.push('/'); // Przekierowanie na stronę główną lub inną stronę
+        if (token) {
+          localStorage.setItem('token', token);
+        } else {
+          console.error('Token is undefined');
+        }
+        setTimeout(() => {
+          router.push('/');
+        }, 10);
       }
     }
   );

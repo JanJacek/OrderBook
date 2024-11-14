@@ -1,4 +1,4 @@
-# FoodFlow (frontend-ff)
+# OrderBook (frontend-ff)
 
 project carried out for the course in computer science \"SGH\"
 

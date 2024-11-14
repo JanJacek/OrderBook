@@ -3,8 +3,16 @@
     <q-header elevated>
       <q-toolbar>
         <q-toolbar-title>
-          KawaiiFood: {{ m_store.restaurantName }}</q-toolbar-title
-        >
+          <p>
+            {{
+              `${
+                m_store.traderName.length > 0
+                  ? 'Trader ' + m_store.traderName
+                  : ''
+              }`
+            }}
+          </p>
+        </q-toolbar-title>
         <q-btn
           v-if="!isLoginPage"
           flat
@@ -35,6 +43,7 @@ const isLoginPage = computed(() => route.path === '/login');
 
 const logout = () => {
   localStorage.removeItem('token');
+  m_store.traderName = '';
   router.push('/login');
 };
 </script>
