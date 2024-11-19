@@ -1,5 +1,6 @@
 import { Server, Socket } from 'socket.io';
 import { PrismaClient } from '@prisma/client'
+import jwt from 'jsonwebtoken'
 
 const prisma = new PrismaClient()
 
@@ -90,6 +91,61 @@ export function ioAddOrder(io: Server, socket: Socket) {
       callback(true);
     } catch (error) {
       console.error('Error adding order:', error);
+      callback(false);
+    }
+  });
+}
+
+export function ioRemoveOrder(io: Server, socket: Socket) {
+  socket.on('rem order', async (data, callback) => {
+    try{
+      const { orderId } = data;
+      // Extract token from headers
+      const token = socket.handshake.auth.token
+     console.log(token);
+      if (!token) {
+        callback(false, 'Token not provided');
+        return;
+      }
+      const decoded = jwt.verify(token, 'your_jwt_secret') as { traderId: number };
+      const traderIdFromToken = decoded.traderId;
+
+      const order = await prisma.orders.findUnique({
+        where: { id: orderId }
+      });
+
+      if (!order) {
+        console.log('no order');
+        callback(false);
+        return;
+      }
+
+      if (order.trader_id !== traderIdFromToken) {
+        console.log('wrong trader');
+        callback(false);
+        return;
+      }
+
+      await prisma.orders.delete({
+        where: { id: orderId }
+      });
+
+      try {
+        console.log('Fetching updated orders list...');
+        const orders = await prisma.orders.findMany({
+          include: {
+            stocks: true
+          }
+        });
+
+        // Notify all connected clients about the updated orders list
+        console.log('wysyłam update orders list');
+        io.emit('orders list updated', orders);
+      } catch (error) {
+        console.error('Error fetching updated orders list:', error);
+      }
+      callback(true);
+    }catch (error){
       callback(false);
     }
   });

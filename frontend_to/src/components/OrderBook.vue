@@ -1,13 +1,27 @@
 <template>
   <div class="flex no-wrap" style="width: 80%">
     <q-table
+      class="my-sticky-header-table"
       :rows="orders"
       :columns="columns"
       row-key="id"
       style="width: 100%; height: 500px"
       :dark="true"
       flat
-    />
+    >
+      <template v-slot:body-cell-actions="props">
+        <q-td :props="props">
+          <q-btn
+            flat
+            round
+            icon="delete"
+            :color="props.row.trader_id === traderId ? 'primary' : 'grey-5'"
+            :disable="props.row.trader_id === traderId ? false : true"
+            @click="deleteOrder(props.row.id, props.row.trader_id)"
+          />
+        </q-td>
+      </template>
+    </q-table>
 
     <div class="bg-dark q-ml-md q-pa-md" style="width: 400px">
       <q-form @submit="addOrder()" class="q-gutter-md">
@@ -74,6 +88,8 @@ interface TransformedOrder {
   type: 'buy' | 'sell';
   date: string;
 }
+
+const { traderId } = getTokenData(localStorage.getItem('token') || '');
 
 const socket = inject<Socket>('socket');
 const orders = ref<TransformedOrder[]>([]);
@@ -142,6 +158,19 @@ const columns = [
     format: (val: string) => new Date(val).toLocaleString(),
     sortable: true,
   },
+  {
+    name: 'owner',
+    label: 'Owner',
+    field: 'owner',
+    sortable: true,
+    align: 'left' as const,
+  },
+  {
+    name: 'actions',
+    label: 'Actions',
+    field: 'actions',
+    align: 'center' as const,
+  },
 ];
 
 function transformOrders(orders: Order[]): TransformedOrder[] {
@@ -149,9 +178,11 @@ function transformOrders(orders: Order[]): TransformedOrder[] {
     id: order.id,
     stockName: order.stocks.name,
     pricePerShare: order.quantity / order.price,
+    trader_id: order.trader_id,
     price: order.price,
     quantity: order.quantity,
     type: order.order,
+    owner: order.trader_id === traderId ? 'Owner' : '',
     date: new Date(order.date).toISOString().toLocaleString(),
   }));
 }
@@ -222,6 +253,65 @@ const addOrder = () => {
     console.error('Socket is not defined');
   }
 };
+
+const deleteOrder = (orderId: number, trader_id: number) => {
+  // if order was made by user
+  if (
+    trader_id === getTokenData(localStorage.getItem('token') || '').traderId
+  ) {
+    if (socket) {
+      socket.emit(
+        'rem order',
+        { orderId },
+        (success: boolean, message: string) => {
+          if (success) {
+            socket.emit(
+              'get order book',
+              {},
+              (response: Order[] | { error: string }) => {
+                if ('error' in response) {
+                  console.error(response.error);
+                } else {
+                  orders.value = transformOrders(response);
+                }
+              }
+            );
+          } else {
+            console.error('Error deleting order:', message);
+          }
+        }
+      );
+    } else {
+      console.error('Socket is not defined');
+    }
+  }
+};
 </script>
 
-<style scoped></style>
+<style lang="sass">
+.my-sticky-header-table
+  /* height or max-height is important */
+  height: 310px
+
+  .q-table__top,
+  .q-table__bottom,
+  thead tr:first-child th
+    background-color: #1d1d1d
+    /* bg color is important for th; just specify one */
+
+  thead tr th
+    position: sticky
+    z-index: 1
+  thead tr:first-child th
+    top: 0
+
+  /* this is when the loading indicator appears */
+  &.q-table--loading thead tr:last-child th
+    /* height of all previous header rows */
+    top: 48px
+
+  /* prevent scrolling behind sticky top row on focus */
+  tbody
+    /* height of all previous header rows */
+    scroll-margin-top: 48px
+</style>
