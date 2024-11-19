@@ -1,7 +1,7 @@
 import type { Server } from 'socket.io'
 import { authSocket } from '../utils/jwtVerify'
 import { ioLogin } from './IoLogin'
-import { ioAddOrder, ioGetOrderBook } from './IoOrders'
+import { ioAddOrder,ioRemoveOrder, ioGetOrderBook } from './IoOrders'
 import { ioGetStocks } from './IoStocks'
 
 export function registerSocketHandlers(io: Server) {
@@ -21,7 +21,9 @@ export function registerSocketHandlers(io: Server) {
 
     ioGetOrderBook(socket)
     ioAddOrder(io, socket)
+    ioRemoveOrder(io, socket)
     ioGetStocks(socket)
+
 
     socket.on('disconnect', () => {
       console.log(`Client has been disconnected: ${socket.id}`)
